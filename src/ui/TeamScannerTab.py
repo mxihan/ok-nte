@@ -169,6 +169,9 @@ class TeamScannerTab(CustomTab):
         return og.app.tr("扫描队伍")
 
     def on_scan_clicked(self):
+        og.app.start_controller.handler.post(self.scan_team)
+
+    def scan_team(self):
         og.app.start_controller.do_start()
         self.scan_btn.setEnabled(False)
         self.scan_btn.setText(og.app.tr("扫描中..."))

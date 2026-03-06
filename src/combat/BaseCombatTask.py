@@ -194,7 +194,7 @@ class BaseCombatTask(CombatCheck):
     def _decide_switch_to(self, current_char: 'BaseChar', free_intro=False):
         max_priority = Priority.MIN
         switch_to = current_char
-        has_intro = free_intro or current_char.is_con_full()
+        has_intro = free_intro or current_char.is_cycle_full()
         switch_order: list['BaseChar'] = []
 
         for char in self.chars:
@@ -566,7 +566,7 @@ class BaseCombatTask(CombatCheck):
             
         return status
 
-    def is_con_full(self) -> bool:
+    def is_cycle_full(self) -> bool:
         ret = False
         chars = []
         status = self.get_all_avatar_vibrate()

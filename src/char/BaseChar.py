@@ -108,6 +108,7 @@ class BaseChar:
         else:
             self.do_perform()
         self.logger.debug(f'set current char false {self.index}')
+        self.switch_next_char()
 
     def wait_intro(self, time_out=1.2, click=True):
         """等待角色入场动画结束。
@@ -479,9 +480,9 @@ class BaseChar:
         else:
             return not self.task.has_cd(box, self.index)
 
-    def is_con_full(self):
-        """判断当前协奏值是否已满 (代理到 task.is_con_full)。"""
-        return self.task.is_con_full()
+    def is_cycle_full(self):
+        """判断当前环合是否已满 (代理到 task.is_cycle_full)。"""
+        return self.task.is_cycle_full()
 
     def ultimate_available(self, check_color=True):
         """判断共鸣解放是否可用。
@@ -508,20 +509,20 @@ class BaseChar:
             self.continues_normal_attack(1 - since_last_switch)
 
     def continues_normal_attack(self, duration, interval=0.1, after_sleep=0, click_skill_if_ready_and_return=False,
-                                until_con_full=False):
+                                until_cycle_full=False):
         """持续进行普通攻击一段时间。
 
         Args:
             duration (float): 持续时间 (秒)。
             interval (float, optional): 每次攻击的间隔时间。默认为 0.1。
             click_skill_if_ready_and_return (bool, optional): 如果共鸣技能可用, 是否立即释放并返回。默认为 False。
-            until_con_full (bool, optional): 是否持续攻击直到协奏值满。默认为 False。
+            until_cycle_full (bool, optional): 是否持续攻击直到协奏值满。默认为 False。
         """
         start = time.time()
         while time.time() - start < duration:
             if click_skill_if_ready_and_return and self.skill_available():
                 return self.click_skill()
-            if until_con_full and self.is_con_full():
+            if until_cycle_full and self.is_cycle_full():
                 return
             self.task.click()
             self.sleep(interval)

@@ -19,7 +19,7 @@ class Zero(BaseChar):
                 self.normal_attack()
             return
         i = 0
-        while not self.is_con_full():
+        while not self.is_cycle_full():
             if i % 4 == 0:
                 self.heavy_attack()
                 if self.skill_available():

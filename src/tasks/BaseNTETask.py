@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
+from typing import List
 
-from ok import BaseTask
+from ok import BaseTask, Box
 from src.scene.NTEScene import NTEScene
 from src.Labels import Labels
 
@@ -14,12 +15,11 @@ class BaseNTETask(BaseTask):
         self._logged_in = False
 
     def in_team(self):
-        c1 = self.find_one(Labels.char_1_text, threshold=0.8, frame_processor=isolate_white_text_to_black)
-        c2 = self.find_one(Labels.char_2_text, threshold=0.8, frame_processor=isolate_white_text_to_black)
-        c3 = self.find_one(Labels.char_3_text, threshold=0.8, frame_processor=isolate_white_text_to_black)
-        c4 = self.find_one(Labels.char_4_text, threshold=0.8, frame_processor=isolate_white_text_to_black)
-        arr = [c1, c2, c3, c4]
-        # logger.debug(f'in_team check {arr}')
+        c1 = self.find_one(Labels.char_1_text, threshold=0.7, frame_processor=binarize_bgr_by_brightness)
+        c2 = self.find_one(Labels.char_2_text, threshold=0.7, frame_processor=binarize_bgr_by_brightness)
+        c3 = self.find_one(Labels.char_3_text, threshold=0.7, frame_processor=binarize_bgr_by_brightness)
+        c4 = self.find_one(Labels.char_4_text, threshold=0.7, frame_processor=binarize_bgr_by_brightness)
+        arr: List[Box | None] = [c1, c2, c3, c4]
         current = -1
         exist_count = 0
         for i in range(len(arr)):
@@ -58,3 +58,23 @@ def isolate_white_text_to_black(cv_image):
     output_image = cv2.cvtColor(match_mask, cv2.COLOR_GRAY2BGR)
 
     return output_image
+
+def binarize_bgr_by_brightness(image):
+    """
+    根据亮度阈值对 BGR 图像进行二值化，并返回 BGR 格式的结果。
+    
+    参数:
+    - image: 输入的 BGR 图像 (MatLike)
+    
+    返回:
+    - 经过二值化处理的 BGR 图像 (MatLike)
+    """
+    # from hashlib import sha256
+    # h = sha256(image.tobytes()).hexdigest()
+    threshold = 200
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, binary_gray = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+    binary_bgr = cv2.cvtColor(binary_gray, cv2.COLOR_GRAY2BGR)
+    # cv2.imwrite(f'{h}.png', binary_bgr)
+    
+    return binary_bgr

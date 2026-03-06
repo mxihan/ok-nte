@@ -1,5 +1,6 @@
 # Test case
 import unittest
+import time
 
 from src.config import config
 from ok.test.TaskTestCase import TaskTestCase
@@ -31,6 +32,13 @@ class TestAutoCombatTask(TaskTestCase):
         self.set_image('tests/images/01.png')
         in_team, current_index, count = self.task.in_team()
         self.logger.info(f'test3 in_team: {in_team}, current_index: {current_index}, count: {count}')
+        self.assertEqual(in_team, True)
+
+    def test_in_team4(self):
+        # Create a BattleReport object
+        self.set_image('tests/images/02.png')
+        in_team, current_index, count = self.task.in_team()
+        self.logger.info(f'test4 in_team: {in_team}, current_index: {current_index}, count: {count}')
         self.assertEqual(in_team, True)
 
 
