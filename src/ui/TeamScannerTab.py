@@ -12,17 +12,6 @@ from src.char.custom.CustomCharManager import CustomCharManager
 from src.tasks.trigger.AutoCombatTask import AutoCombatTask, scanner_signals
 
 
-def cv_to_pixmap(cv_img):
-    if cv_img is None or cv_img.size == 0:
-        return QPixmap()
-    if not cv_img.flags['C_CONTIGUOUS']:
-        cv_img = cv_img.copy()
-    height, width, _ = cv_img.shape
-    bytes_per_line = 3 * width
-    qimg = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format.Format_RGB888).rgbSwapped()
-    return QPixmap.fromImage(qimg)
-
-
 class NewCharDialog(MessageBoxBase):
     tr_title = None
     tr_name_ph = None
@@ -68,11 +57,14 @@ class NewCharDialog(MessageBoxBase):
         self.widget.setMinimumWidth(320)
 
     def _on_char_select(self, text):
-        if text:
-            self.name_input.setText(text)
-            char_info = self.manager.get_character_info(text)
-            if char_info and char_info.get("combo_name"):
-                self.combo_list.setText(char_info.get("combo_name"))
+        if not text:
+            return
+        self.name_input.setText(text)
+        char_info = self.manager.get_character_info(text)
+        if isinstance(char_info, dict) and char_info.get("combo_name"):
+            self.combo_list.setText(char_info.get("combo_name"))
+        else:
+            self.combo_list.setText("")
 
     def get_data(self):
         char_name = self.name_input.text().strip()
@@ -81,19 +73,28 @@ class NewCharDialog(MessageBoxBase):
 
 
 class SlotCard(CardWidget):
-    def __init__(self, index, parent=None):
+    tr_match_success = None
+    tr_unrecognized = None
+    tr_no_image = None
+    tr_dlg_title = None
+    tr_slot_title = None
+    tr_scan_prompt = None
+    tr_action_btn = None
+
+    @classmethod
+    def init_translations(cls):
+        cls.tr_match_success = og.app.tr("匹配成功: {}")
+        cls.tr_unrecognized = og.app.tr("未能识别该特征")
+        cls.tr_no_image = og.app.tr("无画面")
+        cls.tr_dlg_title = og.app.tr("记录新特征")
+        cls.tr_slot_title = og.app.tr("{} 号位")
+        cls.tr_scan_prompt = og.app.tr("点击上方按钮扫描...")
+        cls.tr_action_btn = og.app.tr("未识别，关联新特征")
+
+    def __init__(self, index, manager: CustomCharManager, parent=None):
         super().__init__(parent)
         self.index = index
-        self.manager = CustomCharManager()
-
-        # Define translations as attributes
-        self.tr_match_success = og.app.tr("匹配成功: {}")
-        self.tr_unrecognized = og.app.tr("未能识别该特征")
-        self.tr_no_image = og.app.tr("无画面")
-        self.tr_dlg_title = og.app.tr("记录新特征")
-        self.tr_slot_title = og.app.tr("{} 号位")
-        self.tr_scan_prompt = og.app.tr("点击上方按钮扫描...")
-        self.tr_action_btn = og.app.tr("未识别，关联新特征")
+        self.manager = manager
 
         self.vbox = QVBoxLayout(self)
         self.title = SubtitleLabel(self.tr_slot_title.format(index + 1))
@@ -117,13 +118,11 @@ class SlotCard(CardWidget):
         self.current_mat = mat
         self.current_w = w
         self.current_h = h
-        if mat is not None:
+        if mat is not None and getattr(mat, 'size', 0) > 0:
             pixmap = cv_to_pixmap(mat)
             self.image.setImage(pixmap.scaled(120, 120, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         else:
-            import numpy as np
-            empty_mat = np.zeros((120, 120, 4), dtype=np.uint8)
-            self.image.setImage(cv_to_pixmap(empty_mat))
+            self.image.setImage(QPixmap())
 
         if match_name:
             self.status.setText(self.tr_match_success.format(match_name))
@@ -146,17 +145,31 @@ class SlotCard(CardWidget):
 
 
 class TeamScannerTab(CustomTab):
+    tr_scan_btn = None
+    tr_scanning = None
+    tr_analyzing = None
+    tr_no_feature = None
+    tr_name_tab = None
+    tr_header = None
+    tr_desc = None
 
-    def __init__(self):
+    @classmethod
+    def init_translations(cls):
+        cls.tr_scan_btn = og.app.tr("扫描当前队伍屏幕槽位")
+        cls.tr_scanning = og.app.tr("扫描中...")
+        cls.tr_analyzing = og.app.tr("正在分析...")
+        cls.tr_no_feature = og.app.tr("未获取到特征")
+        cls.tr_name_tab = og.app.tr("扫描队伍")
+        cls.tr_header = og.app.tr("队伍角色扫描")
+        cls.tr_desc = og.app.tr("未识别也可自动战斗，将使用通用脚本(BaseChar)")
+
+    def __init__(self, manager: CustomCharManager = None):
         super().__init__()
         NewCharDialog.init_translations()
+        SlotCard.init_translations()
+        TeamScannerTab.init_translations()
         
-        self.tr_scan_btn = og.app.tr("扫描当前队伍屏幕槽位")
-        self.tr_scanning = og.app.tr("扫描中...")
-        self.tr_analyzing = og.app.tr("正在分析...")
-        self.tr_no_feature = og.app.tr("未获取到特征")
-        self.tr_name = og.app.tr("扫描队伍")
-        
+        self.manager = manager or CustomCharManager()
         self.icon = FluentIcon.CAMERA
         self.logger.info("Init TeamScannerTab")
         
@@ -165,7 +178,7 @@ class TeamScannerTab(CustomTab):
         self.vbox.setSpacing(20)
 
         # Header
-        self.header = SubtitleLabel(og.app.tr("队伍角色扫描"))
+        self.header = SubtitleLabel(self.tr_header)
         self.scan_btn = PrimaryPushButton(FluentIcon.SYNC, self.tr_scan_btn)
         self.scan_btn.setFixedWidth(250)
         self.scan_btn.clicked.connect(self.on_scan_clicked)
@@ -177,13 +190,13 @@ class TeamScannerTab(CustomTab):
         self.cards_layout = QHBoxLayout()
         self.slots: list[SlotCard] = []
         for i in range(4):
-            card = SlotCard(i, self)
+            card = SlotCard(i, self.manager, self)
             self.slots.append(card)
             self.cards_layout.addWidget(card)
 
         self.vbox.addLayout(self.cards_layout)
         
-        self.desc = BodyLabel(og.app.tr("未识别也可自动战斗，将使用通用脚本(BaseChar)"))
+        self.desc = BodyLabel(self.tr_desc)
         self.desc.setAlignment(Qt.AlignCenter)
         self.vbox.addWidget(self.desc)
         
@@ -194,7 +207,7 @@ class TeamScannerTab(CustomTab):
 
     @property
     def name(self):
-        return self.tr_name
+        return self.tr_name_tab
 
     def on_scan_clicked(self):
         og.app.start_controller.handler.post(self.scan_team)
@@ -232,3 +245,22 @@ class TeamScannerTab(CustomTab):
             if i not in updated_indices:
                 self.slots[i].update_result(None, 0, 0, "")
                 self.slots[i].status.setText(self.tr_no_feature)
+
+
+def cv_to_pixmap(cv_img):
+    if cv_img is None or getattr(cv_img, 'size', 0) == 0:
+        return QPixmap()
+    if not cv_img.flags['C_CONTIGUOUS']:
+        cv_img = cv_img.copy()
+    height, width = cv_img.shape[:2]
+    channels = cv_img.shape[2] if len(cv_img.shape) > 2 else 1
+    bytes_per_line = channels * width
+    
+    if channels == 3:
+        qimg = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format.Format_RGB888).rgbSwapped()
+    elif channels == 4:
+        qimg = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format.Format_RGBA8888).rgbSwapped()
+    else:
+        qimg = QImage(cv_img.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
+        
+    return QPixmap.fromImage(qimg)

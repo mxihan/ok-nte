@@ -35,12 +35,15 @@ class CustomCharManager:
         }
         self.load_db()
         self.validate_db()
-        self.validate_db()
         self._feature_cache = {}
         self._cache_scr_w = -1
         self._cache_scr_h = -1
         self._cache_fids = set()
         self.initialized = True
+
+    @staticmethod
+    def get_builtin_prefix():
+        return f"{og.app.tr('[内置代码]')} "
 
     def load_db(self):
         if os.path.exists(DB_PATH):
@@ -70,8 +73,10 @@ class CustomCharManager:
 
     def save_db(self):
         try:
-            with open(DB_PATH, "w", encoding="utf-8") as f:
+            temp_path = DB_PATH + ".tmp"
+            with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(self.db, f, indent=4, ensure_ascii=False)
+            os.replace(temp_path, DB_PATH)
         except Exception as e:
             logger.error(f"Failed to save custom char DB: {e}")
 
@@ -95,8 +100,7 @@ class CustomCharManager:
         # Append built-in scripts
         try:
             from src.char.CharFactory import char_dict
-            from src.ui.CharManagerTab import get_builtin_prefix
-            prefix = get_builtin_prefix()
+            prefix = CustomCharManager.get_builtin_prefix()
             for c_name in char_dict.keys():
                 if c_name != "char_default":
                     if og.app.locale.name() == "zh_CN" and c_name in char_dict and "cn_name" in char_dict[c_name]:

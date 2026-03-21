@@ -17,16 +17,12 @@ import subprocess
 from pathlib import Path
 
 
-def get_builtin_prefix():
-    return f"{og.app.tr('[内置代码]')} "
-
 class CharManagerTab(CustomTab):
 
     def __init__(self):
         super().__init__()
-        get_builtin_prefix()
         self.tr_save_success = og.app.tr('保存成功')
-        self.tr_combo_msg = og.app.tr('出招表: {}')
+        self.tr_combo_msg = og.app.tr('出招表: {} 绑定成功')
         self.tr_del_success = og.app.tr('删除成功')
         self.tr_del_char_msg = og.app.tr('已成功删除角色: {} 以及关联的特征图')
         self.tr_unbind_success = og.app.tr('解除绑定')
@@ -289,8 +285,12 @@ class CharManagerTab(CustomTab):
     def on_char_selected(self, item):
         if not item:
             return
-
         self.current_char = item.text()
+        self._render_right_panel()
+
+    def _render_right_panel(self):
+        if not self.current_char:
+            return
         char_info = self.manager.get_character_info(self.current_char)
         if not char_info:
             return
@@ -343,14 +343,7 @@ class CharManagerTab(CustomTab):
     def on_delete_feature(self, fid):
         if self.current_char:
             self.manager.remove_feature_from_character(self.current_char, fid)
-            
-            # 刷新特征图列表前，需要重新获取下 char info。最简单就是重新选中。
-            # 但为了防止无限递归或触发问题，可以直接复用 on_char_selected
-            for i in range(self.list_widget.count()):
-                item = self.list_widget.item(i)
-                if item.text() == self.current_char:
-                    self.on_char_selected(item)
-                    break
+            self._render_right_panel()
 
     def on_combo_changed(self, text):
         if not text:
@@ -365,7 +358,7 @@ class CharManagerTab(CustomTab):
             self.combo_select.setCurrentIndex(-1)
             return
 
-        is_builtin = text.startswith(get_builtin_prefix())
+        is_builtin = text.startswith(CustomCharManager.get_builtin_prefix())
         if is_builtin:
             self.combo_text.setText(self.tr_builtin_text)
             self.combo_text.setReadOnly(True)
@@ -416,7 +409,7 @@ class CharManagerTab(CustomTab):
         combo_name = self.combo_select.currentText().strip()
         combo_content = self.combo_text.toPlainText().strip()
         
-        is_builtin = combo_name.startswith(get_builtin_prefix())
+        is_builtin = combo_name.startswith(CustomCharManager.get_builtin_prefix())
         
         if is_builtin and not self.current_char:
             return
@@ -474,11 +467,7 @@ class CharManagerTab(CustomTab):
         self.manager.add_character(self.current_char, "")
         
         # 刷新列表和右侧界面
-        for i in range(self.list_widget.count()):
-            item = self.list_widget.item(i)
-            if item.text() == self.current_char:
-                self.on_char_selected(item)
-                break
+        self._render_right_panel()
                 
         InfoBar.success(
             title=self.tr_unbind_success,
@@ -492,7 +481,7 @@ class CharManagerTab(CustomTab):
 
     def on_delete_combo(self):
         combo_name = self.combo_select.currentText().strip()
-        if not combo_name or combo_name.startswith(get_builtin_prefix()):
+        if not combo_name or combo_name.startswith(CustomCharManager.get_builtin_prefix()):
             return
             
         self.manager.delete_combo(combo_name)
@@ -511,11 +500,7 @@ class CharManagerTab(CustomTab):
         
         # 刷新当前角色的内容显示
         if self.current_char:
-            for i in range(self.list_widget.count()):
-                item = self.list_widget.item(i)
-                if item.text() == self.current_char:
-                    self.on_char_selected(item)
-                    break
+            self._render_right_panel()
         else:
             self.on_combo_changed("")
             

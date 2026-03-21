@@ -1,5 +1,4 @@
 import ast
-import re
 
 from src.char.BaseChar import BaseChar
 from src.char.custom.CustomCharManager import CustomCharManager
@@ -77,59 +76,57 @@ class CustomChar(BaseChar):
         if not self.combo_str:
             return
 
-        # 仅在编译时提取别名映射即可，无需战斗中高频执行
         aliases = {cmd.name: cmd.func for cmd in self.get_command_definitions()}
 
-        commands = []
-        paren_level = 0
-        current_cmd = []
-        for char in self.combo_str:
-            if char == '(':
-                paren_level += 1
-            elif char == ')':
-                paren_level -= 1
-            
-            if char == ',' and paren_level == 0:
-                cmd = "".join(current_cmd).strip()
-                if cmd:
-                    commands.append(cmd)
-                current_cmd = []
-            else:
-                current_cmd.append(char)
-        
-        last_cmd = "".join(current_cmd).strip()
-        if last_cmd:
-            commands.append(last_cmd)
+        try:
+            tree = ast.parse(self.combo_str)
+        except SyntaxError as e:
+            self.logger.error(f"Syntax error parsing combo '{self.combo_str}': {e}")
+            return
 
-        for cmd in commands:
-            # 检查是否有括号以解析参数
-            match = re.match(r"([a-zA-Z_]+)(?:\((.*?)\))?", cmd)
-            if not match:
-                self.logger.error(f"Invalid combo command: {cmd}")
-                continue
+        if not tree.body:
+            return
 
-            func_name = match.group(1)
-            args_str = match.group(2)
+        expr = tree.body[0].value
+        nodes = expr.elts if isinstance(expr, ast.Tuple) else [expr]
 
-            # 获取目标（真实的函数对象，或者字符串别名）
-            target = aliases.get(func_name, func_name)
-
-            # 解析并预置参数
+        for node in nodes:
+            func_name = ""
             args = []
             kwargs = {}
-            if args_str:
-                params = [p.strip() for p in args_str.split(",")]
-                for p in params:
-                    if not p:
-                        continue
-                    if "=" in p:
-                        k, v = p.split("=", 1)
-                        kwargs[k.strip()] = self._parse_val(v.strip())
-                    else:
-                        args.append(self._parse_val(p))
 
-            # 存入执行缓存
-            self.parsed_combo.append((func_name, target, args, kwargs, cmd))
+            if isinstance(node, ast.Name):
+                func_name = node.id
+            elif isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name):
+                    func_name = node.func.id
+
+                for arg in node.args:
+                    try:
+                        args.append(ast.literal_eval(arg))
+                    except ValueError:
+                        if isinstance(arg, ast.Name):
+                            args.append(arg.id)
+                        else:
+                            self.logger.warning(f"Unsupported argument: {arg}")
+
+                for kw in node.keywords:
+                    try:
+                        kwargs[kw.arg] = ast.literal_eval(kw.value)
+                    except ValueError:
+                        if isinstance(kw.value, ast.Name):
+                            kwargs[kw.arg] = kw.value.id
+                        else:
+                            self.logger.warning(f"Unsupported kwarg: {kw.value}")
+            else:
+                self.logger.warning(f"Unsupported syntax in combo: {type(node)}")
+                continue
+
+            if not func_name:
+                continue
+
+            target = aliases.get(func_name, func_name)
+            self.parsed_combo.append((func_name, target, args, kwargs, func_name))
 
     def _execute_parsed_combo(self):
         """战斗时极速遍历并执行已缓存的指令队列"""
@@ -150,17 +147,6 @@ class CustomChar(BaseChar):
 
             # 中途打断逻辑
             self.check_combat()
-
-    def _parse_val(self, val_str):
-        # 使用安全的 ast 解析字面量 (整数、浮点、布尔等)
-        val_str = val_str.strip()
-        if not val_str:
-            return ""
-        try:
-            return ast.literal_eval(val_str)
-        except (ValueError, SyntaxError):
-            # 如果是无引号的裸写字符串如 "left"，直接当字符串兜底返回
-            return val_str
 
     @classmethod
     def get_available_commands(cls):
