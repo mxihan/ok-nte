@@ -481,10 +481,16 @@ class BaseCombatTask(CombatCheck):
             logger.warning(f'char count {count} larger than 4, set to 4')
             count = 4
 
-        self.chars = [
-            get_char_by_pos(self, self.get_box_by_name(f'box_char_{i+1}').scale(1.1, 1.1), i, safe_get(self.chars, i))
-            for i in range(count)
-        ]
+        self.chars = []
+
+        for i in range(count):
+            box = self.get_box_by_name(f'box_char_{i+1}')
+            if count == 1:
+                offset = int(self.width * -9 / 2560)
+                box = box.copy(x_offset=offset)
+            box_scaled = box.scale(1.1, 1.1)
+            char = get_char_by_pos(self, box_scaled, i, safe_get(self.chars, i))
+            self.chars.append(char)
 
         healer_count = 0
         for char in self.chars:

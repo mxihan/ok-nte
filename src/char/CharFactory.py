@@ -62,7 +62,7 @@ def get_char_by_pos(task: 'BaseCombatTask', box: 'Box', index: int, old_char: Ba
     task.log_info(f"No match found for char {index + 1} set as default char")
     return BaseChar(task, index, char_name="unknown")
 
-def get_char_feature_by_pos(task: 'BaseCombatTask', index, frame=None, scale_box=1.0) -> tuple['np.ndarray', int, int]:
+def get_char_feature_by_pos(task: 'BaseCombatTask', index, frame=None, scale_box=1.0, single_char=False) -> tuple['np.ndarray', int, int]:
     """
     Get the feature image of the character at the given position.
     
@@ -76,6 +76,9 @@ def get_char_feature_by_pos(task: 'BaseCombatTask', index, frame=None, scale_box
     if frame is None:
         frame = task.frame
     box = task.get_box_by_name(f'box_char_{index + 1}')
+    if single_char:
+        offset = int(task.width * -9 / 2560)
+        box = box.copy(x_offset=offset)
     if not math.isclose(scale_box, 1.0):
         box = box.scale(scale_box, scale_box)
     return box.crop_frame(frame), task.width, task.height

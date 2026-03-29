@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from typing import List
 import time
+import re
 
 from ok import BaseTask, Box
 from src.scene.NTEScene import NTEScene
@@ -15,6 +16,14 @@ class BaseNTETask(BaseTask):
         self.key_config = self.get_global_config('Game Hotkey Config')
         self._logged_in = False
         self.arrow_contour = {"contours": None, "shape":None}
+
+    def is_in_team(self):
+        start = time.time()
+        mat = self.box_of_screen(0.9367, 0.9465, 0.9516, 0.9708).crop_frame(self.frame)
+        mat = binarize_bgr_by_brightness(mat)
+        result = self.ocr(frame=mat, match=re.compile(r"[a-zA-Z0-9]"), frame_processor=isolate_white_text_to_black)
+        self.log_debug(f"is_in_team {result}, cost {time.time() - start} s")
+        return len(result) == 1
 
     def in_team(self):
         c1 = self.find_one(Labels.char_1_text, threshold=0.7, frame_processor=binarize_bgr_by_brightness)
@@ -31,7 +40,7 @@ class BaseNTETask(BaseTask):
                     current = i
             else:
                 exist_count += 1
-        if exist_count > 0:
+        if self.is_in_team():
             self._logged_in = True
             return True, current, exist_count + 1
         else:
@@ -51,7 +60,7 @@ class BaseNTETask(BaseTask):
         mat = self.box_of_screen(0.0691, 0.1083, 0.0949, 0.1493, name="in_world").crop_frame(frame)
         mat = binarize_bgr_by_brightness(mat, threshold=200)
         res, cost = self._find_rotated_shape(mat)
-        self.log_debug(f"find_rotated_shape {res}, cost {cost} ms")
+        self.log_debug(f"in_world {res}, cost {cost} ms")
         return len(res) == 1
 
     def _find_rotated_shape(self, scene_bgr, score_threshold=0.1):

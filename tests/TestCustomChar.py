@@ -208,11 +208,11 @@ class TestCustomChar(TaskTestCase):
         self.assertTrue(tab.slots[0].btn_act.isHidden())
         
         # 槽位 1: 應該顯示未匹配，並出現可關聯的按鈕
-        self.assertEqual(tab.slots[1].status.text(), SlotCard.tr_unrecognized)
+        self.assertEqual(tab.slots[1].status.text(), tab.slots[1].tr_unrecognized)
         self.assertFalse(tab.slots[1].btn_act.isHidden())
 
         # 槽位 2: 未收到掃描結果，應被清空並寫著無畫面
-        self.assertEqual(tab.slots[2].status.text(), TeamScannerTab.tr_no_feature)
+        self.assertEqual(tab.slots[2].status.text(), tab.tr_no_feature)
 
     def test_builtin_combo_roundtrip(self):
         builtin_ref = PREDEFINED_CHARACTER_REF
