@@ -91,11 +91,11 @@ config = {
     },
     'links': { # 关于里显示的链接, 可选
             'default': {
-                'github': 'https://github.com/BnanZ0/ok-neverness-to-everness',
+                'github': 'https://github.com/BnanZ0/ok-nte',
                 'discord': 'https://discord.gg/vVyCatEBgA',
                 'sponsor': 'https://ko-fi.com/bnanz',
-                'share': 'Download from https://github.com/BnanZ0/ok-neverness-to-everness',
-                'faq': 'https://github.com/BnanZ0/ok-neverness-to-everness'
+                'share': 'Download from https://github.com/BnanZ0/ok-nte',
+                'faq': 'https://github.com/BnanZ0/ok-nte'
             }
         },
     'about': """

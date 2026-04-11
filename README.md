@@ -9,8 +9,8 @@
   <p>
     <img src="https://img.shields.io/badge/platform-Windows-blue" alt="平台">
     <img src="https://img.shields.io/badge/python-3.12-skyblue" alt="Python版本">
-    <a href="https://github.com/BnanZ0/ok-neverness-to-everness/releases"><img src="https://img.shields.io/github/downloads/BnanZ0/ok-neverness-to-everness/total" alt="总下载量"></a>
-    <a href="https://github.com/BnanZ0/ok-neverness-to-everness/releases"><img src="https://img.shields.io/github/v/release/BnanZ0/ok-neverness-to-everness" alt="最新版本"></a>
+    <a href="https://github.com/BnanZ0/ok-nte/releases"><img src="https://img.shields.io/github/downloads/BnanZ0/ok-nte/total" alt="总下载量"></a>
+    <a href="https://github.com/BnanZ0/ok-nte/releases"><img src="https://img.shields.io/github/v/release/BnanZ0/ok-nte" alt="最新版本"></a>
     <a href="https://discord.gg/vVyCatEBgA"><img alt="Discord" src="https://img.shields.io/discord/296598043787132928?color=5865f2&label=%20Discord"></a>
   </p>
 </div>
@@ -57,7 +57,7 @@ All issues and consequences arising from the use of this software are not relate
 
 此方法适合绝大多数用户，简单快捷，并支持自动更新。
 
-1.  前往 [**Releases**](https://github.com/BnanZ0/ok-neverness-to-everness/releases) 页面。
+1.  前往 [**Releases**](https://github.com/BnanZ0/ok-nte/releases) 页面。
 2.  下载最新的 `ok-nte-win32-China-setup.exe` 文件。
 3.  双击运行安装程序，按提示完成安装即可。
 
@@ -68,7 +68,7 @@ All issues and consequences arising from the use of this software are not relate
 1.  **环境要求**：确保已安装 **Python 3.12** 或更高版本。
 2.  **克隆仓库**：
     ```bash
-    git clone https://github.com/BnanZ0/ok-neverness-to-everness.git
+    git clone https://github.com/BnanZ0/ok-nte.git
     cd ok-neverness-to-everness
     ```
 3.  **安装依赖**：
@@ -120,7 +120,7 @@ All issues and consequences arising from the use of this software are not relate
 
 ### 四、 问题反馈
 
-如果以上方法未能解决您的问题，欢迎通过 [**Issues**](https://github.com/BnanZ0/ok-neverness-to-everness/issues) 向我们反馈。为帮助我们快速定位问题，请在提交时提供以下信息：
+如果以上方法未能解决您的问题，欢迎通过 [**Issues**](https://github.com/BnanZ0/ok-nte/issues) 向我们反馈。为帮助我们快速定位问题，请在提交时提供以下信息：
 
 *   **问题截图**：清晰展示异常界面或错误提示。
 *   **日志文件**：附上程序目录下的 `.log` 日志文件。
@@ -147,12 +147,12 @@ All issues and consequences arising from the use of this software are not relate
 
 
 ## ❤️ 赞助与致谢
-*   喜欢本项目? [点亮小星星⭐](https://github.com/BnanZ0/ok-neverness-to-everness) 或 [赞助开发者](./.github/sponsor.md)!
+*   喜欢本项目? [点亮小星星⭐](https://github.com/BnanZ0/ok-nte) 或 [赞助开发者](./.github/sponsor.md)!
 
 ### 贡献者
 
-<a href="https://github.com/BnanZ0/ok-neverness-to-everness/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=BnanZ0/ok-neverness-to-everness" width="40" />
+<a href="https://github.com/BnanZ0/ok-nte/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=BnanZ0/ok-nte" width="40" />
 </a>
 
 ### 赞助商 (Sponsors)

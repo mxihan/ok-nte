@@ -50,7 +50,7 @@ class Element(StrEnum):
     WHITE = 'White'  # 白
 
 
-role_values = [role for role in Role]  # 角色定位枚举值的列表
+role_values = list(Role)
 
 
 class BaseChar:

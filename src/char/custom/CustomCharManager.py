@@ -171,7 +171,7 @@ class CustomCharManager:
                 char_data["feature_ids"] = valid_fids
 
             # Keep db.features in sync with actual image assets on disk.
-            for fid in list(self.db["features"].keys()):
+            for fid in self.db["features"].keys():
                 path = os.path.join(FEATURES_DIR, f"{fid}.png")
                 if not os.path.exists(path):
                     del self.db["features"][fid]

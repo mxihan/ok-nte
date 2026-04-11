@@ -9,8 +9,8 @@
   <p>
     <img src="https://img.shields.io/badge/platform-Windows-blue" alt="Platform">
     <img src="https://img.shields.io/badge/python-3.12-skyblue" alt="Python Version">
-    <a href="https://github.com/BnanZ0/ok-neverness-to-everness/releases"><img src="https://img.shields.io/github/downloads/BnanZ0/ok-neverness-to-everness/total" alt="Total Downloads"></a>
-    <a href="https://github.com/BnanZ0/ok-neverness-to-everness/releases"><img src="https://img.shields.io/github/v/release/BnanZ0/ok-neverness-to-everness" alt="Latest Release"></a>
+    <a href="https://github.com/BnanZ0/ok-nte/releases"><img src="https://img.shields.io/github/downloads/BnanZ0/ok-nte/total" alt="Total Downloads"></a>
+    <a href="https://github.com/BnanZ0/ok-nte/releases"><img src="https://img.shields.io/github/v/release/BnanZ0/ok-nte" alt="Latest Release"></a>
     <a href="https://discord.gg/vVyCatEBgA"><img alt="Discord" src="https://img.shields.io/discord/296598043787132928?color=5865f2&label=%20Discord"></a>
   </p>
 </div>
@@ -45,7 +45,7 @@ All issues and consequences arising from the use of this software are not relate
 
 This method is suitable for most users. It's simple, fast, and supports automatic updates.
 
-1.  Go to the [**Releases**](https://github.com/BnanZ0/ok-neverness-to-everness/releases) page.
+1.  Go to the [**Releases**](https://github.com/BnanZ0/ok-nte/releases) page.
 2.  Download the latest `ok-nte-win32-Global-setup.exe` file.
 3.  Double-click the installer and follow the prompts to complete the installation.
 
@@ -56,7 +56,7 @@ This method requires a Python environment and is suitable for users who want to 
 1.  **Prerequisites**: Ensure you have **Python 3.12** or a newer version installed.
 2.  **Clone the repository**:
     ```bash
-    git clone https://github.com/BnanZ0/ok-neverness-to-everness.git
+    git clone https://github.com/BnanZ0/ok-nte.git
     cd ok-neverness-to-everness
     ```
 3.  **Install dependencies**:
@@ -108,7 +108,7 @@ Before starting the automation, please check and confirm the following settings:
 
 ### 4. Bug Reports & Feedback
 
-If the solutions above do not resolve your issue, feel free to report it via [**Issues**](https://github.com/BnanZ0/ok-neverness-to-everness/issues). To help us quickly identify the problem, please provide the following information in your report:
+If the solutions above do not resolve your issue, feel free to report it via [**Issues**](https://github.com/BnanZ0/ok-nte/issues). To help us quickly identify the problem, please provide the following information in your report:
 
 *   **Screenshot**: A clear image of the error or unusual behavior.
 *   **Log File**: Attach the `.log` file from the program's directory.
@@ -130,12 +130,12 @@ If the solutions above do not resolve your issue, feel free to report it via [**
 * Ash Echoes (discontinued) [https://github.com/ok-oldking/ok-baijing](https://github.com/ok-oldking/ok-baijing)
 
 ## ❤️ Support & Acknowledgments
-*   Like this project? [Lighten the star⭐](https://github.com/BnanZ0/ok-neverness-to-everness)
+*   Like this project? [Lighten the star⭐](https://github.com/BnanZ0/ok-nte)
 
 ### Contributors
 
-<a href="https://github.com/BnanZ0/ok-neverness-to-everness/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=BnanZ0/ok-neverness-to-everness" width="40" />
+<a href="https://github.com/BnanZ0/ok-nte/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=BnanZ0/ok-nte" width="40" />
 </a>
 
 ### Sponsors
