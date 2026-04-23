@@ -2,12 +2,16 @@ import time
 from typing import List
 
 import cv2
-from ok import BaseTask, Box
+from ok import BaseTask, Box, og
 
 from src.Labels import Labels
 from src.scene.NTEScene import NTEScene
 from src.utils import image_utils as iu
 
+from skimage.metrics import structural_similarity as ssim
+from concurrent.futures import ThreadPoolExecutor
+from ok import Logger, find_boxes_by_name, sort_boxes
+logger = Logger.get_logger(__name__)
 
 class BaseNTETask(BaseTask):
     def __init__(self, *args, **kwargs):
@@ -16,6 +20,17 @@ class BaseNTETask(BaseTask):
         self.key_config = self.get_global_config("Game Hotkey Config")
         self._logged_in = False
         self.arrow_contour = {"contours": None, "shape": None}
+        self.ocr
+
+    @property
+    def thread_pool_executor(self) -> ThreadPoolExecutor:
+        if og.my_app is None:
+            return None
+        return og.my_app.get_thread_pool_executor()
+
+    @property
+    def main_viewport(self):
+        return self.box_of_screen(0.1543, 0.1021, 0.9070, 0.8458)
 
     def is_in_team(self):
         box = self.get_box_by_name(Labels.health_bar_slash)

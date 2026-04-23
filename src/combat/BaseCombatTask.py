@@ -602,7 +602,7 @@ class BaseCombatTask(CombatCheck):
         """加载队伍中的角色信息。"""
         self.load_hotkey()
         in_team, current_index, count = self.in_team()
-        if not in_team:
+        if not in_team or current_index == -1:
             return False
 
         if count > 4:
@@ -621,6 +621,7 @@ class BaseCombatTask(CombatCheck):
         self.chars = new_chars
 
         healer_count = 0
+        self.info_set("Chars", [])
         for char in self.chars:
             if char is not None:
                 char.reset_state()

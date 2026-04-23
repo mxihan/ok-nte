@@ -30,6 +30,7 @@ class CombatCheck(BaseNTETask):
         self.combat_end_condition = None
         self.target_enemy_error_notified = False
         self.cds = {}
+        self.combat_detect_future = None
 
     @property
     def in_ultimate(self):
@@ -91,12 +92,12 @@ class CombatCheck(BaseNTETask):
                 start = time.time()
                 while time.time() - start < self.target_enemy_time_out:
                     self.middle_click(interval=1)
-                    if self.has_target():
+                    if self.combat_detect() is True:
                         return True
                     self.next_frame()
 
-    def has_target(self):
-        ret = self.find_diamond_target()[0] is not None
+    def has_target(self, frame=None):
+        ret = self.find_diamond_target(frame=frame)[0] is not None
         return ret
 
     def has_health_bar(self):
@@ -117,7 +118,7 @@ class CombatCheck(BaseNTETask):
             min_height,
             max_width,
             max_height,
-            box=self.box_of_screen(0.1543, 0.1021, 0.9070, 0.8458),
+            box=self.main_viewport,
         )
 
         if len(boxes) > 0:
@@ -164,8 +165,6 @@ class CombatCheck(BaseNTETask):
                 return self.reset_to_false(reason="on_combat_check failed")
             if self.is_boss():
                 return self.scene.set_in_combat()
-            if self.has_target():
-                return self.scene.set_in_combat()
             # else:
             #     frame = getattr(self, 'cache_frame', None)
             #     if frame is not None:
@@ -175,6 +174,9 @@ class CombatCheck(BaseNTETask):
             #     return self.scene.set_in_combat()
             if self.combat_end_condition is not None and self.combat_end_condition():
                 return self.reset_to_false(reason="end condition reached")
+            combat_detect = self.combat_detect()
+            if combat_detect is None or combat_detect is True:
+                return self.scene.set_in_combat()
             if self.target_enemy(wait=True):
                 logger.debug('retarget enemy succeeded')
                 return self.scene.set_in_combat()
@@ -188,7 +190,7 @@ class CombatCheck(BaseNTETask):
             if not has_target and target:
                 self.log_debug('try target')
                 self.middle_click(after_sleep=0.1)
-            in_combat = has_target or ((self.config.get('自动目标') or not isinstance(self, AutoCombatTask)) and self.check_health_bar())
+            in_combat = (self.config.get('自动目标') or not isinstance(self, AutoCombatTask)) and self.check_health_bar()
             if in_combat:
                 if not has_target and not self.target_enemy(wait=True):
                     return False
@@ -222,12 +224,13 @@ class CombatCheck(BaseNTETask):
         
         return template, mask
 
-
-    def find_diamond_target(self, scales=range(10, 15), threshold=0.9):
+    def find_diamond_target(self, scales=range(10, 15), threshold=0.8, frame=None):
         """
         在图像中心 50% 范围内寻找黑框白底菱形
         利用屏幕比例动态收缩范围 + 智能颜色遮罩剔除背景杂讯
         """
+        if frame is None:
+            frame = self.frame
         ratio = self.height / 1440.0
         
         dynamic_scales = set()
@@ -236,9 +239,8 @@ class CombatCheck(BaseNTETask):
             dynamic_scales.add(new_size)
         dynamic_scales = sorted(list(dynamic_scales))
 
-        self.cache_frame = self.frame
         box = self.box_of_screen(0.25, 0.25, 0.75, 0.75)
-        roi = box.crop_frame(self.cache_frame)
+        roi = box.crop_frame(frame)
 
         # ==========================================
         # 【核心优化】：智能颜色过滤 + 保留灰度特征
@@ -252,23 +254,40 @@ class CombatCheck(BaseNTETask):
         lower_bound, upper_bound = color_range_to_bound(color) # 假设你有这个辅助函数
         white_mask = cv2.inRange(roi, lower_bound, upper_bound)
 
-        # 2. 【极大提升性能】如果画面里连一点白色都没有，直接判定找不到，跳过所有匹配计算
+        # 2. 【极大提升性能】初步检查
         if cv2.countNonZero(white_mask) == 0:
             return None, None, None
 
-        # 3. 膨胀白色区域（向外扩展一圈）。
-        # 用最大的 scale 作为 kernel 大小，刚好能包裹住白核心外面的那圈“黑外框”
-        # kernel_size = dynamic_scales[-1]
-        # kernel_size = kernel_size if kernel_size % 2 != 0 else kernel_size + 1 # 保证奇数
-        # kernel = np.ones((kernel_size, kernel_size), np.uint8)
-        # valid_areas = cv2.dilate(white_mask, kernel)
-
-        # 4. 提取原灰度图，但把有效区域之外的全部抹成统一的“平庸灰 (128)”
-        roi_gray_original = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY) if len(roi.shape) == 3 else roi
-        filtered_gray = np.full_like(roi_gray_original, 0)
+        # ==========================================================
+        # 【新增】：剔除过大的白块 (Size Filtering)
+        # ==========================================================
+        # 获取当前最大的预期尺寸
+        max_allowed_size = max(dynamic_scales) * 1.2 # 允许 20% 的冗余误差
         
-        # 使用 np.where：只要在有效区域内，保留原图的明暗细节(白核+黑框)；不在区域内，一律填成 128
-        roi_gray = np.where(white_mask == 255, roi_gray_original, filtered_gray)
+        # 查找连通区域
+        # connectivity=8 表示 8 邻域插件；stats 包含 [x, y, w, h, area]
+        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(white_mask, connectivity=8)
+        
+        # 遍历所有找到的“块”（索引 0 是背景，从 1 开始）
+        for i in range(1, num_labels):
+            w = stats[i, cv2.CC_STAT_WIDTH]
+            h = stats[i, cv2.CC_STAT_HEIGHT]
+            area = stats[i, cv2.CC_STAT_AREA]
+            
+            # 过滤条件：如果宽度或高度明显超过了最大模板尺寸
+            # 或者你可以根据面积过滤：area > max_allowed_size**2
+            if w > max_allowed_size or h > max_allowed_size:
+                white_mask[labels == i] = 0 # 将过大的块抹黑
+        
+        # 再次检查抹除后是否还有剩余有效区域
+        if cv2.countNonZero(white_mask) == 0:
+            return None, None, None
+        # ==========================================================
+
+        # 4. 提取原灰度图，应用过滤后的掩码
+        roi_gray_original = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY) if len(roi.shape) == 3 else roi
+        # 将无效区域设为 0 (黑色)，有效区域保留原图细节
+        roi_gray = np.where(white_mask == 255, roi_gray_original, 0)
         
         # iu.display_image(roi_gray, name="roi_gray")
         # ==========================================
@@ -307,6 +326,33 @@ class CombatCheck(BaseNTETask):
         else:
             return None, None, None
 
+    def _async_combat_detect(self, frame):
+        if self.has_target(frame=frame):
+            return True, "target"
+        if self.ocr(
+            frame=frame,
+            box=self.main_viewport,
+            frame_processor=iu.isolate_cd_to_black,
+            match=re.compile(r"lv", re.IGNORECASE),
+            lib="bg_onnx_ocr",
+        ):
+            return True, "lv"
+        return False, None
+
+    def combat_detect(self):
+        if self.combat_detect_future and self.combat_detect_future.done():
+            ret, reason = self.combat_detect_future.result()
+            self.combat_detect_future = None
+            self.logger.info(f"combat_detect_future result: {ret}, reason: {reason}")
+            return ret
+        if self.combat_detect_future is None:
+            self.logger.info("combat_detect_future submit")
+            frame = self.frame.copy()
+            self.combat_detect_future = self.thread_pool_executor.submit(
+                self._async_combat_detect, frame=frame
+            )
+        return None
+        
 
 enemy_health_color_red = {
     "r": (210, 255),
