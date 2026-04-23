@@ -40,7 +40,7 @@ class BaseNTETask(BaseTask):
         c4 = self.find_one(Labels.char_4_text, threshold=0.7, frame_processor=process_char_text,
                            mask_function=iu.mask_outside_white_rect)
         arr: List[Box | None] = [c1, c2, c3, c4]
-        self.log_debug(f"in_team {arr}")
+        # self.log_debug(f"in_team {arr}")
         current = -1
         exist_count = 0
         for i in range(len(arr)):

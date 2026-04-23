@@ -40,7 +40,7 @@ class AutoCombatTask(BaseCombatTask, TriggerTask):
 
     def run(self):
         ret = False
-        if not self.scene.in_team(self.in_team_and_world):
+        if not self.scene.in_team(self.is_in_team):
             return
 
         combat_start = time.time()

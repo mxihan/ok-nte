@@ -104,14 +104,14 @@ class CombatCheck(BaseNTETask):
         self.draw_boxes("search_lv", lv_text_boxes, color="blue")
 
     def has_health_bar(self):
-        if self._in_combat:
-            min_height = self.height_of_screen(7 / 2160)
-            max_height = min_height * 3
-            min_width = self.width_of_screen(12 / 3840)
-        else:
-            min_height = self.height_of_screen(7 / 2160)
-            max_height = min_height * 3
-            min_width = self.width_of_screen(100 / 3840)
+        if self._find_red_health_bar() or self._find_boss_health_bar():
+            return True
+        return False
+
+    def _find_red_health_bar(self):
+        min_height = self.height_of_screen(7 / 2160)
+        min_width = self.width_of_screen(100 / 3840)
+        max_height = min_height * 3
 
         boxes = find_color_rectangles(
             self.frame, enemy_health_color_red, min_width, min_height, max_height=max_height
@@ -120,17 +120,22 @@ class CombatCheck(BaseNTETask):
         if len(boxes) > 0:
             self.draw_boxes("enemy_health_bar_red", boxes, color="blue")
             return True
-        else:
-            boxes = find_color_rectangles(
-                self.frame,
-                boss_health_color,
-                min_width,
-                min_height * 1.3,
-                box=self.box_of_screen(0.3277, 0.0507, 0.4980, 0.0701),
-            )
-            if len(boxes) == 1:
-                self.draw_boxes("boss_health", boxes, color="blue")
-                return True
+        return False
+
+    def _find_boss_health_bar(self):
+        min_height = self.height_of_screen(9 / 2160)
+        min_width = self.width_of_screen(100 / 3840)
+
+        boxes = find_color_rectangles(
+            self.frame,
+            boss_health_color,
+            min_width,
+            min_height,
+            box=self.box_of_screen(0.3277, 0.0507, 0.4980, 0.0701),
+        )
+        if len(boxes) == 1:
+            self.draw_boxes("boss_health", boxes, color="blue")
+            return True
         return False
 
     def in_combat(self, target=False):
@@ -178,7 +183,7 @@ class CombatCheck(BaseNTETask):
 
 enemy_health_color_red = {
     "r": (215, 255),  # Red range
-    "g": (40, 70),  # Green range
+    "g": (20, 70),  # Green range
     "b": (20, 55),  # Blue range
 }
 

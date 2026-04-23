@@ -234,7 +234,7 @@ class BaseCombatTask(CombatCheck):
             elif text.x > self.width_of_screen(0.925):
                 cds["ultimate"] = cd
         self.scene.cd_refreshed = True
-        self.log_debug(f"cd refreshed: {cds} {time.time() - cds['time']}")
+        # self.log_debug(f"cd refreshed: {cds} {time.time() - cds['time']}")
 
     def get_cd(self, box_name, char_index=None):
         self.refresh_cd()
