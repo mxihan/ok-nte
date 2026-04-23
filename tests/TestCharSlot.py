@@ -15,9 +15,9 @@ class TestHealthBar(TaskTestCase):
 
     def test_enemy_health(self):
         # Create a BattleReport object
-        self.set_image('tests/images/05.png')
+        self.set_image('tests/images/01.png')
         self.task.has_char_slot_changed(2)
-        self.set_image('tests/images/06.png')
+        self.set_image('tests/images/02.png')
         self.task.has_char_slot_changed(2)
 
 if __name__ == '__main__':

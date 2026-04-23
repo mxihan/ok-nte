@@ -22,7 +22,7 @@ class TestCustomChar(TaskTestCase):
     def test_scan_team(self):
         from src.tasks.trigger.AutoCombatTask import scanner_signals
 
-        self.set_image('tests/images/03.png')
+        self.set_image('tests/images/02.png')
 
         # 建立 Mock 物件來捕捉信號參數
         mock_handler = MagicMock()
@@ -41,13 +41,13 @@ class TestCustomChar(TaskTestCase):
             
             # 驗證傳出的報告結構
             self.assertIsInstance(results, list)
-            # 因為 03.png 有隊伍，只要解析沒出錯通常 results 的長度會大於 0
+            # 因為 02.png 有隊伍，只要解析沒出錯通常 results 的長度會大於 0
             if len(results) > 0:
                 self.assertIn("index", results[0])
                 self.assertIn("mat", results[0])
                 self.assertIn("width", results[0])
                 self.assertIn("match", results[0])
-            self.assertEqual(len(results), 3)
+            self.assertEqual(len(results), 4)
         finally:
             # 測試完畢切斷連結以避免影響其他測試
             scanner_signals.scan_done.disconnect(mock_handler)

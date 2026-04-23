@@ -15,30 +15,16 @@ class TestAutoCombatTask(TaskTestCase):
 
     def test_in_team1(self):
         # Create a BattleReport object
-        self.set_image('tests/images/03.png')
+        self.set_image('tests/images/01.png')
         in_team, current_index, count = self.task.in_team()
         self.logger.info(f'test1 in_team: {in_team}, current_index: {current_index}, count: {count}')
         self.assertEqual(in_team, True)
 
     def test_in_team2(self):
         # Create a BattleReport object
-        self.set_image('tests/images/04.png')
-        in_team, current_index, count = self.task.in_team()
-        self.logger.info(f'test2 in_team: {in_team}, current_index: {current_index}, count: {count}')
-        self.assertEqual(in_team, True)
-
-    def test_in_team3(self):
-        # Create a BattleReport object
-        self.set_image('tests/images/01.png')
-        in_team, current_index, count = self.task.in_team()
-        self.logger.info(f'test3 in_team: {in_team}, current_index: {current_index}, count: {count}')
-        self.assertEqual(in_team, True)
-
-    def test_in_team4(self):
-        # Create a BattleReport object
         self.set_image('tests/images/02.png')
         in_team, current_index, count = self.task.in_team()
-        self.logger.info(f'test4 in_team: {in_team}, current_index: {current_index}, count: {count}')
+        self.logger.info(f'test2 in_team: {in_team}, current_index: {current_index}, count: {count}')
         self.assertEqual(in_team, True)
 
 
