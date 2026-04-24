@@ -491,6 +491,10 @@ class BaseChar:
         """获取技能按键 (代理到 task.get_skill_key)。"""
         return self.task.get_skill_key()
 
+    def get_arc_key(self):
+        """获取弧盘技能按键 (代理到 task.get_arc_key)。"""
+        return self.task.get_arc_key()
+
     def get_switch_priority(self, has_intro):
         """获取切换到此角色的优先级。
 
