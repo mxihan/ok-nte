@@ -230,7 +230,7 @@ class FishingTask(BaseNTETask):
         return False
 
     def is_success_overlay(self) -> bool:
-        return self.is_success_text_exist()
+        return self.find_one(Labels.fish_ok) and self.is_success_text_exist()
 
     def close_success_overlay(self):
         self.wait_until(

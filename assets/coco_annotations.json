@@ -47,6 +47,12 @@
             "file_name": "images/1.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 9,
+            "file_name": "images/2.png",
+            "width": 1920,
+            "height": 1080
         }
     ],
     "annotations": [
@@ -335,6 +341,19 @@
             ],
             "area": 2736,
             "iscrowd": 0
+        },
+        {
+            "id": 23,
+            "image_id": 9,
+            "category_id": 23,
+            "bbox": [
+                857,
+                113,
+                46,
+                30
+            ],
+            "area": 1380,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -446,6 +465,11 @@
         {
             "id": 22,
             "name": "fish_bait",
+            "supercategory": ""
+        },
+        {
+            "id": 23,
+            "name": "fish_ok",
             "supercategory": ""
         }
     ]
