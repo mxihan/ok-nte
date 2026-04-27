@@ -46,5 +46,5 @@ class NTEInteraction(PostMessageInteraction):
         time.sleep(down_time)
         self.post(btn_up, 0, click_pos)
         if x >= 0 and move:
-            time.sleep(0.1)
+            time.sleep(0.001)
             SetCursorPos(self.cursor_position)

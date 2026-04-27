@@ -236,7 +236,7 @@ class FishingTask(BaseNTETask):
             pre_action=lambda: self.click(
                 self.SUCCESS_CLOSE_POS[0],
                 self.SUCCESS_CLOSE_POS[1],
-                move=False
+                interval=1.5,
             ),
             time_out=10,
         )
