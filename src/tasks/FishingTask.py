@@ -23,7 +23,6 @@ class FishingTask(BaseNTETask):
     OPEN_PANEL_TIMEOUT = 5
     BITE_TIMEOUT = 20
     CONTROL_TIMEOUT = 30
-    RESULT_TIMEOUT = 10
     _GREEN_HSV_LOWER = np.array([50, 150, 160], dtype=np.uint8)
     _GREEN_HSV_UPPER = np.array([160, 220, 255], dtype=np.uint8)
     _YELLOW_HSV_LOWER = np.array([20, 60, 195], dtype=np.uint8)
@@ -107,7 +106,8 @@ class FishingTask(BaseNTETask):
         if not self.wait_until(
             lambda: not self.is_fish_bait_exist() and self.is_fish_start_exist(),
             pre_action=lambda: self.send_key("f", interval=2),
-            time_out=10,
+            post_action=self.clear_success_overlay_if_present,
+            time_out=20,
         ):
             self.log_error("未检测到进入抛竿状态", notify=True)
             return False
@@ -167,22 +167,22 @@ class FishingTask(BaseNTETask):
         zone_left = int(state["zone_left"])
         zone_right = int(state["zone_right"])
 
+        zone_center = (zone_left + zone_right) // 2
         zone_width = max(1, zone_right - zone_left)
-        half_width = zone_width / 2
-        left_distance = pointer - zone_left
-
+        
+        error = pointer - zone_center 
+        abs_error = abs(error)
+        
         deadzone = max(2, int(zone_width * 0.06))
-
-        if abs(left_distance - half_width) <= deadzone:
+        
+        if abs_error <= deadzone:
             self._set_bar_key(None)
-            if now - getattr(self, "_last_bar_log_time", 0) > 0.5:
-                self.log_info(
-                    f"指针已锁定中心: pointer={pointer}, left={left_distance:.1f}, target={half_width:.1f}"
-                )
+            if now - self._last_bar_log_time > 1:
+                self.log_info(f"指针已锁定中心: pointer={pointer}, target={zone_center}")
                 self._last_bar_log_time = now
             return
 
-        key = "d" if left_distance < half_width else "a"
+        key = "d" if error < 0 else "a"
         self._set_bar_key(key)
 
     def _set_bar_key(self, key):
@@ -239,7 +239,7 @@ class FishingTask(BaseNTETask):
                 self.SUCCESS_CLOSE_POS[0],
                 self.SUCCESS_CLOSE_POS[1],
             ),
-            time_out=self.RESULT_TIMEOUT,
+            time_out=10,
         )
         self.wait_until(self.is_fish_start_exist, time_out=5)
         self.sleep(0.5)
@@ -287,14 +287,33 @@ class FishingTask(BaseNTETask):
         else:
             pointer_center = -1
 
-        col_has_green = np.any(green_mask > 0, axis=0)
-        green_cols = np.flatnonzero(col_has_green)
-        if green_cols.size == 0:
+        green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        green_candidates = []
+        for contour in green_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if w >= 5 and h >= 5:
+                area = w * h
+                green_candidates.append((x, y, w, h, area))
+
+        if not green_candidates:
             return None
 
-        zone_left = int(green_cols[0])
-        zone_right = int(green_cols[-1] + 1)
-        zone_w = max(1, zone_right - zone_left)
+        green_candidates.sort(key=lambda item: item[4], reverse=True)
+
+        top_2_candidates = green_candidates[:2]
+
+        top_2_candidates.sort(key=lambda item: item[0])
+
+        if len(top_2_candidates) == 1:
+            zone_left = top_2_candidates[0][0]
+            zone_right = top_2_candidates[0][0] + top_2_candidates[0][2]
+        else:
+            zone_left = top_2_candidates[0][0]
+            zone_right = max(
+                top_2_candidates[0][0] + top_2_candidates[0][2],
+                top_2_candidates[1][0] + top_2_candidates[1][2],
+            )
+        zone_w = zone_right - zone_left
 
         return {
             "zone_left": zone_left,
