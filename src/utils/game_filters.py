@@ -1,5 +1,5 @@
 from src import text_white_color
-from src.utils.image_utils import HSVRange, create_color_mask, filter_by_hsv
+from src.utils import image_utils as iu
 
 dialog_white_color = {
     "r": (220, 240),  # Red range
@@ -15,20 +15,20 @@ lv_white_color = {
 
 
 def isolate_cd_to_black(cv_image):
-    return create_color_mask(cv_image, text_white_color, invert=True)
+    return iu.create_color_mask(cv_image, text_white_color, invert=True)
 
 
 def isolate_lv_to_black(cv_image):
-    return create_color_mask(cv_image, lv_white_color, invert=True)
+    return iu.create_color_mask(cv_image, lv_white_color, invert=True)
 
 
 def isolate_dialog_to_white(cv_image):
-    return create_color_mask(cv_image, dialog_white_color, invert=False)
+    return iu.create_color_mask(cv_image, dialog_white_color, invert=False)
 
 
 def current_char_filter(cv_image, blur=False):
     if blur:
-        hsv = HSVRange((150, 170, 125), (179, 255, 255))
+        hsv = iu.HSVRange((150, 170, 125), (179, 255, 255))
     else:
-        hsv = HSVRange((150, 170, 165), (179, 255, 255))
-    return filter_by_hsv(cv_image, hsv, return_mask=True)
+        hsv = iu.HSVRange((150, 170, 165), (179, 255, 255))
+    return iu.filter_by_hsv(cv_image, hsv, return_mask=True)

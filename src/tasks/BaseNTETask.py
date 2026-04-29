@@ -44,7 +44,7 @@ class BaseNTETask(BaseTask):
 
     @property
     def main_viewport(self):
-        return self.box_of_screen(0.1543, 0.1021, 0.9070, 0.8458)
+        return self.box_of_screen(0.1543, 0.1021, 0.9070, 0.6389)
 
     @overload
     def click(self, x: int | Box | List[Box] = -1, y=-1, move_back=False, name=None, interval=-1,

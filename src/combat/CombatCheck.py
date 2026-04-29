@@ -104,97 +104,76 @@ class CombatCheck(BaseNTETask):
         return ret
 
     def find_target(self, frame=None):
-        def filter(image):
-            return iu.binarize_bgr_by_brightness(image, threshold=245)
-
         if frame is None:
             frame = self.frame
-
-        # 1. 提前 Crop，裁减检索区域面积，直接在 ROI 操作
-        box = self.box_of_screen(0.2, 0.2, 0.8, 0.8)
+        # 1. 提前 Crop
+        box = self.box_of_screen(0.2, 0.2, 0.8, 0.6389)
         roi = box.crop_frame(frame)
         self.draw_boxes("find_target", box, color="blue")
+        
+        # 2. 还原世界亮度 (确保彩色特征在滤镜下依然可用)
+        roi = iu.restore_world_brightness(roi)
+        
+        # 3. 准备彩色模板
+        target_feature = self.get_feature_by_name(Labels.target)
+        if target_feature is None:
+            return None
+        template_bgr = target_feature.mat
+        
+        best_res = None
+        
+        # 4. 多尺度彩色模板匹配 (Color-Aware Template Matching)
+        # 采用更精细的缩放步长 (0.1)，确保能捕捉到远处的微小目标 (如 0.6 倍率的小图标)
+        for scale in np.arange(1, 0.2, -0.2):
+            tw = int(template_bgr.shape[1] * scale)
+            th = int(template_bgr.shape[0] * scale)
+            if tw < 10 or th < 10: continue
+            tpl_scaled = cv2.resize(template_bgr, (tw, th))
+            
+            # 使用归一化相关系数匹配
+            res_map = cv2.matchTemplate(roi, tpl_scaled, cv2.TM_CCOEFF_NORMED)
+            _, max_val, _, max_loc = cv2.minMaxLoc(res_map)
+            
+            # 严格色彩匹配门槛：必须 > 0.6 才能有效过滤纯白色特效
+            if max_val > 0.6:
+                tx, ty = max_loc
+                
+                # 5. 二次校验：对称性校验
+                crop_bgr = roi[ty:ty+th, tx:tx+tw]
+                crop_gray = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2GRAY)
+                # 使用较宽容的二值化以保留小目标的轮廓特征
+                _, crop_bin = cv2.threshold(crop_gray, 180, 255, cv2.THRESH_BINARY)
+                
+                white_count = cv2.countNonZero(crop_bin)
+                if white_count < 5: continue
+                
+                h_sym = cv2.countNonZero(cv2.bitwise_and(crop_bin, cv2.flip(crop_bin, 1))) / white_count
+                v_sym = cv2.countNonZero(cv2.bitwise_and(crop_bin, cv2.flip(crop_bin, 0))) / white_count
+                sym_score = (h_sym + v_sym) / 2
+                
+                # 综合加权评分：彩色特征 (2/3) + 几何对称性 (1/3)
+                score = (max_val * 2 + sym_score) / 3
+                
+                if score > 0.55:
+                    if best_res is None or score > best_res['confidence']:
+                        best_res = {
+                            'x': box.x + tx + tw // 2,
+                            'y': box.y + ty + th // 2,
+                            'w': tw,
+                            'h': th,
+                            'confidence': score
+                        }
 
-        # 2. 获取纯白核心并前置判断
-        pure_white_mask = cv2.inRange(roi, (255, 255, 255), (255, 255, 255))
-        if cv2.countNonZero(pure_white_mask) == 0:
-            return False
-
-        # 3. 对 ROI 进行二值化，直接转换为单通道灰度图
-        roi_bin = filter(roi)
-        roi_gray = cv2.cvtColor(roi_bin, cv2.COLOR_BGR2GRAY)
-
-        pw_num_labels, pw_labels, pw_stats, _ = cv2.connectedComponentsWithStats(
-            pure_white_mask, connectivity=8
-        )
-
-        for scale in np.arange(1, 0.2, -0.3):
-            template = self.resize_target(scale)
-            th, tw = template.shape[:2]
-            template_area = th * tw
-
-            # 模板转换为单通道灰度图，保证 matchTemplate 工作在 1 channel 提升3倍速度
-            template_gray = (
-                cv2.cvtColor(template, cv2.COLOR_BGR2GRAY) if len(template.shape) == 3 else template
+        if best_res:
+            result_box = Box(
+                best_res['x'] - best_res['w'] // 2,
+                best_res['y'] - best_res['h'] // 2,
+                width=best_res['w'],
+                height=best_res['h'],
+                confidence=best_res['confidence'],
             )
-
-            for i in range(1, pw_num_labels):
-                pw_w = pw_stats[i, cv2.CC_STAT_WIDTH]
-                pw_h = pw_stats[i, cv2.CC_STAT_HEIGHT]
-                pw_area = pw_w * pw_h
-                if pw_area > template_area:
-                    continue
-
-                pw_x = pw_stats[i, cv2.CC_STAT_LEFT]
-                pw_y = pw_stats[i, cv2.CC_STAT_TOP]
-                cx = pw_x + pw_w // 2
-                cy = pw_y + pw_h // 2
-
-                # 设定一个小框(长宽为原目标的 ~2倍)，给予哪怕位移造成的冗余也足够匹配
-                pad_x = int(tw * 1.0)
-                pad_y = int(th * 1.0)
-
-                y1 = max(0, cy - pad_y)
-                y2 = min(roi_gray.shape[0], cy + pad_y)
-                x1 = max(0, cx - pad_x)
-                x2 = min(roi_gray.shape[1], cx + pad_x)
-
-                # 切割出微型区域 (例如 100x100 像素量级)
-                crop = roi_gray[y1:y2, x1:x2].copy()
-
-                # 如果切割的区域因为在边缘而导致依然小于模板范围，则跳过
-                if crop.shape[0] < th or crop.shape[1] < tw:
-                    continue
-
-                # 在这几百像素的极小图上运算连通域，开销为 0
-                num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
-                    crop, connectivity=8
-                )
-                for j in range(1, num_labels):
-                    if (
-                        stats[j, cv2.CC_STAT_WIDTH] * stats[j, cv2.CC_STAT_HEIGHT]
-                        > template_area * 1.2
-                    ):
-                        crop[labels == j] = 0
-
-                # 原图单通道、模板单通道
-                res = cv2.matchTemplate(crop, template_gray, cv2.TM_CCOEFF_NORMED)
-                _, max_val, _, max_loc = cv2.minMaxLoc(res)
-
-                if max_val > 0.6:
-                    center_x = box.x + x1 + max_loc[0] + tw // 2
-                    center_y = box.y + y1 + max_loc[1] + th // 2
-
-                    result_box = Box(
-                        center_x - tw // 2,
-                        center_y - th // 2,
-                        width=tw,
-                        height=th,
-                        confidence=max_val,
-                    )
-                    self.draw_boxes("target", result_box, color="red")
-
-                    return result_box
+            self.draw_boxes("target", result_box, color="red")
+            return result_box
 
         return False
 
@@ -209,7 +188,7 @@ class CombatCheck(BaseNTETask):
         return template
 
     def has_health_bar(self):
-        if self._find_red_health_bar() or self._find_boss_health_bar():
+        if self._find_red_health_bar(): # or self._find_boss_health_bar():
             return True
         return False
 
@@ -219,8 +198,8 @@ class CombatCheck(BaseNTETask):
         max_height = min_height * 2.5
         max_width = self.width_of_screen(200 / 2560)
 
+        # 还原原始的颜色过滤
         _frame = iu.filter_by_hsv(self.frame, enemy_health_hsv)
-
         boxes = find_color_rectangles(
             _frame,
             enemy_health_color_red,
@@ -301,17 +280,11 @@ class CombatCheck(BaseNTETask):
             if not has_target and target:
                 self.log_debug("try target")
                 self.middle_click(after_sleep=0.1)
-            has_health_bar = self.check_health_bar()
+            is_boss = self.is_boss()
+            has_lv = self.find_lv()
             is_auto = self.config.get("自动目标") or not isinstance(self, AutoCombatTask)
 
-            in_combat = has_health_bar and (is_auto or has_target)
-            if not in_combat and has_target:
-                in_combat = self.ocr(
-                    box=self.main_viewport,
-                    frame_processor=gf.isolate_lv_to_black,
-                    match=re.compile(r"lv", re.IGNORECASE),
-                    target_height=720,
-                )
+            in_combat = (is_boss or has_lv) and (is_auto or has_target)
             if in_combat:
                 if not has_target and not self.target_enemy(wait=True):
                     return False
@@ -319,19 +292,26 @@ class CombatCheck(BaseNTETask):
                 self._in_combat = self.load_chars()
                 return self._in_combat
 
+    def find_lv(self, frame=None):
+        def ocr_processor(img):
+            img = iu.restore_world_brightness(img)
+            return gf.isolate_lv_to_black(img)
+
+        return self.ocr(
+            frame=frame,
+            box=self.main_viewport,
+            frame_processor=ocr_processor,
+            match=re.compile(r"lv", re.IGNORECASE),
+            target_height=720,
+            lib="bg_onnx_ocr",
+        )
+
     def combat_detect(self, frame=None, target=True, lv=True):
         if frame is None:
             frame = self.frame
         if target and self.has_target(frame=frame):
             return True, "target"
-        if lv and self.ocr(
-            frame=frame,
-            box=self.main_viewport,
-            frame_processor=gf.isolate_lv_to_black,
-            match=re.compile(r"lv", re.IGNORECASE),
-            target_height=720,
-            lib="bg_onnx_ocr",
-        ):
+        if lv and self.find_lv(frame=frame):
             return True, "lv"
         return False, None
 
