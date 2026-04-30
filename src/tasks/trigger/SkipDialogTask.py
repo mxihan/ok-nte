@@ -67,8 +67,8 @@ class SkipDialogTask(TriggerTask, BaseNTETask):
 
     def check_dialog_click(self):
         if self.find_dialog_history():
-            if result := self.find_one(Labels.dialog_click, threshold=0.8, vertical_variance=0.02):
-                self.click(result, down_time=0.01, after_sleep=0.1)
+            if self.find_one(Labels.dialog_click, threshold=0.8, vertical_variance=0.02):
+                self.send_key("space", after_sleep=0.1)
                 return True
 
     def skip_message(self):
