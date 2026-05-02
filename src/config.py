@@ -183,6 +183,7 @@ config = {
         ["src.tasks.trigger.AutoCombatTask", "AutoCombatTask"],
         ["src.tasks.trigger.SkipDialogTask", "SkipDialogTask"],
         ["src.tasks.trigger.FastTravelTask", "FastTravelTask"],
+        ["src.tasks.trigger.AutoCoffe45sTask", "AutoCoffe45sTask"]
     ],
     "custom_tabs": [
         ["src.ui.CharHubTab", "CharHubTab"]
